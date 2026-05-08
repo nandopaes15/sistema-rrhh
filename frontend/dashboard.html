@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard – Sistema RRHH</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #efefef;
+    --surface: #ffffff;
+    --surface2: #f5f5f5;
+    --border: #e2e2e2;
+    --accent: #c0392b;
+    --accent-hover: #a93226;
+    --accent-soft: rgba(192,57,43,.08);
+    --text: #1a1a1a;
+    --muted: #888;
+    --sidebar-w: 224px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 10;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 20px 18px; border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo-icon {
+    width: 30px; height: 30px; background: var(--accent); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .sidebar-logo-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sidebar-logo-text { font-size: 1rem; font-weight: 700; }
+  .sidebar-logo-text span { color: var(--accent); }
+  .nav-section {
+    padding: 16px 18px 5px;
+    font-size: .68rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 18px; color: var(--muted); cursor: pointer;
+    font-size: .875rem; font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: color .15s, background .15s, border-color .15s;
+    user-select: none;
+  }
+  .nav-item svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+  .sidebar-footer { margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--border); }
+  .user-name { font-size: .85rem; font-weight: 600; margin-bottom: 2px; }
+  .user-role { font-size: .78rem; color: var(--muted); margin-bottom: 10px; }
+  .btn-logout {
+    width: 100%; background: transparent; border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 8px; color: var(--muted); cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: .82rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: color .15s, border-color .15s;
+  }
+  .btn-logout svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-logout:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── MAIN ── */
+  .main { margin-left: var(--sidebar-w); padding: 28px 32px; min-height: 100vh; }
+  .page { display: none; animation: fadeIn .25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .page-header { margin-bottom: 22px; }
+  .page-title { font-size: 1.45rem; font-weight: 700; margin-bottom: 2px; }
+  .page-desc { color: var(--muted); font-size: .875rem; }
+
+  /* ── HOME CARDS ── */
+  .welcome { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+  .welcome span { color: var(--accent); }
+  .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 24px; }
+  .menu-card {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 20px 18px; cursor: pointer;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+  }
+  .menu-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(192,57,43,.1); }
+  .menu-card-icon {
+    width: 36px; height: 36px; background: var(--accent-soft); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
+  }
+  .menu-card-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .menu-card-title { font-weight: 600; font-size: .9rem; margin-bottom: 3px; }
+  .menu-card-desc { color: var(--muted); font-size: .8rem; }
+
+  /* ── TABLE CARD ── */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .table-title { font-weight: 600; font-size: .92rem; }
+  .btn-add {
+    background: var(--accent); border: none; border-radius: 7px;
+    padding: 7px 14px; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: .82rem; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: background .15s;
+  }
+  .btn-add svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-add:hover { background: var(--accent-hover); }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 10px 16px; text-align: left;
+    font-size: .72rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  td { padding: 12px 16px; font-size: .875rem; border-bottom: 1px solid #f0f0f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: .74rem; font-weight: 600; }
+  .badge-activo { background: #eafaf1; color: #27ae60; }
+  .badge-inactivo { background: #fdf0ef; color: var(--accent); }
+  .btn-action {
+    background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 10px; color: var(--muted); cursor: pointer;
+    font-size: .78rem; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 500; transition: all .15s; margin-right: 4px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .btn-action svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-action:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .btn-action.del:hover { color: var(--accent); border-color: var(--accent); }
+  .empty-row td { text-align: center; color: var(--muted); padding: 32px; font-size: .875rem; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.25); z-index: 100;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px 28px; width: 100%; max-width: 460px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.12);
+    animation: fadeUp .2s ease; max-height: 90vh; overflow-y: auto;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 18px; }
+  .form-field { margin-bottom: 14px; }
+  .form-field label { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .05em; }
+  .form-field input, .form-field select {
+    width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 7px; padding: 9px 12px; color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: .875rem; outline: none;
+    transition: border-color .2s;
+  }
+  .form-field input:focus, .form-field select:focus { border-color: var(--accent); background: #fff; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .btn-cancel {
+    background: transparent; border: 1.5px solid var(--border); border-radius: 7px;
+    padding: 8px 16px; color: var(--muted); cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: .875rem;
+    transition: border-color .15s;
+  }
+  .btn-cancel:hover { border-color: #ccc; color: var(--text); }
+  .btn-save {
+    background: var(--accent); border: none; border-radius: 7px;
+    padding: 8px 18px; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600; font-size: .875rem; cursor: pointer; transition: background .15s;
+  }
+  .btn-save:hover { background: var(--accent-hover); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; padding: 11px 16px; font-size: .85rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.1); transform: translateY(60px);
+    opacity: 0; transition: all .3s; pointer-events: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast svg { width: 14px; height: 14px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid #27ae60; }
+  .toast.success svg { stroke: #27ae60; }
+  .toast.error { border-left: 3px solid var(--accent); }
+  .toast.error svg { stroke: var(--accent); }
+
+  @media print {
+    .sidebar, .btn-add, .btn-action, .btn-imprimir, .modal-overlay, .toast { display: none !important; }
+    .main { margin-left: 0 !important; padding: 16px !important; }
+    .page { display: block !important; }
+    .page:not(#page-nominas) { display: none !important; }
+    #detalle-nomina-section { display: block !important; }
+    body { background: #fff !important; }
+    .table-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+    th { background: #f0f0f0 !important; }
+    .print-header { display: block !important; }
+  }
+  .print-header {
+    display: none;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 10px;
+  }
+  .print-header h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; }
+  .print-header p { font-size: .85rem; color: #555; }
+  .btn-imprimir {
+    background: transparent; border: 1.5px solid var(--border); border-radius: 7px;
+    padding: 7px 14px; color: var(--muted); cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: .82rem; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color .15s, border-color .15s; margin-left: 8px;
+  }
+  .btn-imprimir svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-imprimir:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div class="sidebar-logo-text">Sistema <span>RRHH</span></div>
+  </div>
+
+  <div class="nav-section">General</div>
+  <div class="nav-item active" onclick="showPage('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Inicio
+  </div>
+
+  <div class="nav-section">Seguridad</div>
+  <div class="nav-item" onclick="showPage('usuarios')">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Usuarios
+  </div>
+  <div class="nav-item" onclick="showPage('roles')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    Roles
+  </div>
+  <div class="nav-item" onclick="showPage('auditoria')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Auditoría
+  </div>
+
+  <div class="nav-section">Recursos Humanos</div>
+  <div class="nav-item" onclick="showPage('empleados')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Empleados
+  </div>
+  <div class="nav-item" onclick="showPage('cargos')">
+    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    Cargos
+  </div>
+  <div class="nav-item" onclick="showPage('dependencias')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Dependencias
+  </div>
+  <div class="nav-item" onclick="showPage('asistencias')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+    Asistencias
+  </div>
+  <div class="nav-item" onclick="showPage('nominas')">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Nóminas
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-name" id="sidebarUser">–</div>
+    <div class="user-role">Sesión activa</div>
+    <button class="btn-logout" onclick="logout()">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <p class="welcome">Bienvenido, <span id="welcomeName">–</span></p>
+    <p style="color:var(--muted);font-size:.875rem;margin-top:4px">Sistema de Gestión de Seguridad y Recursos Humanos</p>
+    <div class="menu-grid">
+      <div class="menu-card" onclick="showPage('usuarios')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="menu-card-title">Usuarios</div><div class="menu-card-desc">Gestión de accesos</div>
+      </div>
+      <div class="menu-card" onclick="showPage('roles')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
+        <div class="menu-card-title">Roles</div><div class="menu-card-desc">Perfiles y permisos</div>
+      </div>
+      <div class="menu-card" onclick="showPage('auditoria')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>
+        <div class="menu-card-title">Auditoría</div><div class="menu-card-desc">Historial de acciones</div>
+      </div>
+      <div class="menu-card" onclick="showPage('empleados')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="menu-card-title">Empleados</div><div class="menu-card-desc">Registro del personal</div>
+      </div>
+      <div class="menu-card" onclick="showPage('asistencias')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div class="menu-card-title">Asistencias</div><div class="menu-card-desc">Control de entradas y salidas</div>
+      </div>
+      <div class="menu-card" onclick="showPage('nominas')">
+        <div class="menu-card-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="menu-card-title">Nóminas</div><div class="menu-card-desc">Liquidación de sueldos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USUARIOS -->
+  <div class="page" id="page-usuarios">
+    <div class="page-header"><div class="page-title">Usuarios</div><div class="page-desc">Gestión de cuentas del sistema</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Listado de usuarios</span>
+        <button class="btn-add" onclick="openModal('usuario')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo usuario</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>Usuario</th><th>Nombre</th><th>Email</th><th>Roles</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-usuarios"><tr class="empty-row"><td colspan="7">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ROLES -->
+  <div class="page" id="page-roles">
+    <div class="page-header"><div class="page-title">Roles</div><div class="page-desc">Perfiles de acceso al sistema</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Listado de roles</span>
+        <button class="btn-add" onclick="openModal('rol')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo rol</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-roles"><tr class="empty-row"><td colspan="4">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- AUDITORÍA -->
+  <div class="page" id="page-auditoria">
+    <div class="page-header"><div class="page-title">Auditoría</div><div class="page-desc">Registro de todas las acciones del sistema</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Historial de eventos</span></div>
+      <table><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Descripción</th><th>Tabla</th><th>IP</th></tr></thead>
+      <tbody id="tbody-auditoria"><tr class="empty-row"><td colspan="6">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- EMPLEADOS -->
+  <div class="page" id="page-empleados">
+    <div class="page-header"><div class="page-title">Empleados</div><div class="page-desc">Registro del personal</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Listado de empleados</span>
+        <button class="btn-add" onclick="openModal('empleado')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo empleado</button>
+      </div>
+      <table><thead><tr><th>Cédula</th><th>Nombre</th><th>Cargo</th><th>Dependencia</th><th>Salario Base</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-empleados"><tr class="empty-row"><td colspan="7">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- CARGOS -->
+  <div class="page" id="page-cargos">
+    <div class="page-header"><div class="page-title">Cargos</div><div class="page-desc">Puestos de trabajo disponibles</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Listado de cargos</span>
+        <button class="btn-add" onclick="openModal('cargo')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo cargo</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>Descripción</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-cargos"><tr class="empty-row"><td colspan="3">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- DEPENDENCIAS -->
+  <div class="page" id="page-dependencias">
+    <div class="page-header"><div class="page-title">Dependencias</div><div class="page-desc">Áreas o departamentos</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Listado de dependencias</span>
+        <button class="btn-add" onclick="openModal('dependencia')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva dependencia</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>Descripción</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-dependencias"><tr class="empty-row"><td colspan="3">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ASISTENCIAS -->
+  <div class="page" id="page-asistencias">
+    <div class="page-header"><div class="page-title">Asistencias</div><div class="page-desc">Control de entrada y salida</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Registros de asistencia</span>
+        <button class="btn-add" onclick="openModal('asistencia')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar asistencia</button>
+      </div>
+      <table><thead><tr><th>Empleado</th><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-asistencias"><tr class="empty-row"><td colspan="5">Cargando...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- NÓMINAS -->
+  <div class="page" id="page-nominas">
+    <div class="page-header"><div class="page-title">Nóminas</div><div class="page-desc">Liquidación de sueldos del personal</div></div>
+    <div class="table-card">
+      <div class="table-header"><span class="table-title">Períodos de nómina</span>
+        <button class="btn-add" onclick="openModal('nomina')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva nómina</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>Período</th><th>Fecha Generación</th><th>Total Nómina</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-nominas"><tr class="empty-row"><td colspan="5">Cargando...</td></tr></tbody></table>
+    </div>
+    <div id="detalle-nomina-section" style="display:none; margin-top:20px;">
+      <div class="table-card">
+        <div class="print-header" id="print-header">
+          <h2 id="print-title">Nómina</h2>
+          <p id="print-meta"></p>
+        </div>
+        <div class="table-header">
+          <span class="table-title" id="detalle-nomina-title">Detalle de nómina</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-imprimir" onclick="imprimirNomina()">
+              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir nómina
+            </button>
+            <button class="btn-add" id="btn-agregar-detalle" onclick="openModal('detalle_nomina')" style="display:none"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agregar empleado</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Empleado</th><th>Salario Base</th><th>Descuentos</th><th>Salario Neto</th><th>Acciones</th></tr></thead>
+        <tbody id="tbody-detalle-nomina"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg id="toastIcon" viewBox="0 0 24 24"></svg>
+  <span id="toastText"></span>
+</div>
+
+<script>
+const API = 'http://localhost:8000/api';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+
+document.getElementById('welcomeName').textContent = localStorage.getItem('nombre') || '–';
+document.getElementById('sidebarUser').textContent = localStorage.getItem('nombre') || '–';
+
+// ── ROLES Y PERMISOS ──────────────────────────────────────────────────────
+const userRoles = JSON.parse(localStorage.getItem('roles') || '[]');
+const isAdmin    = userRoles.includes('Administrador');
+const isRRHH     = userRoles.includes('RRHH');
+const isConsultor = userRoles.includes('Consultor');
+
+// Puede escribir = admin o RRHH (según módulo)
+const canWriteSeguridad = isAdmin;
+const canWriteRRHH      = isAdmin || isRRHH;
+
+// Ocultar secciones de seguridad para no-admins
+function applyRoleRestrictions() {
+  // Consultor y RRHH no ven el módulo de seguridad en el sidebar
+  if (!isAdmin) {
+    document.querySelectorAll('.nav-section, .nav-item').forEach(el => {
+      if (el.classList.contains('nav-section') && el.textContent.trim() === 'Seguridad') el.style.display = 'none';
+      if (el.classList.contains('nav-item')) {
+        const txt = el.textContent.trim().toLowerCase();
+        if (txt.includes('usuario') || txt.includes('roles') || txt.includes('auditoría') || txt.includes('auditoria')) el.style.display = 'none';
+      }
+    });
+  }
+  // Mostrar badge de rol en sidebar
+  const roleLabel = isAdmin ? 'Administrador' : isRRHH ? 'RRHH' : 'Consultor';
+  document.querySelector('.user-role').textContent = roleLabel;
+}
+
+// Helper: botones de acción según permiso
+function actionBtns(canWrite, editFn, deleteFn) {
+  if (!canWrite) return '<span style="color:var(--muted);font-size:.78rem">Solo lectura</span>';
+  return `
+    <button class="btn-action" onclick="${editFn}"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
+    <button class="btn-action del" onclick="${deleteFn}"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Eliminar</button>`;
+}
+
+let currentNominaId = null;
+let cargosCache = [], dependenciasCache = [], empleadosCache = [], rolesCache = [];
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const labels = { home:'inicio', usuarios:'usuarios', roles:'roles', auditoria:'auditoría', empleados:'empleados', cargos:'cargos', dependencias:'dependencias', asistencias:'asistencias', nominas:'nóminas' };
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(labels[name] || name)) n.classList.add('active');
+  });
+  const loaders = { usuarios:loadUsuarios, roles:loadRoles, auditoria:loadAuditoria, empleados:loadEmpleados, cargos:loadCargos, dependencias:loadDependencias, asistencias:loadAsistencias, nominas:loadNominas };
+  if (loaders[name]) loaders[name]();
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { logout(); return null; }
+  if (res.status === 204) return true;
+  return res.json();
+}
+
+// ── LOADERS ───────────────────────────────────────────────────────────────
+async function loadUsuarios() {
+  const data = await api('GET', '/usuarios/');
+  const tbody = document.getElementById('tbody-usuarios');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Sin registros</td></tr>'; return; }
+  tbody.innerHTML = data.map(u => `<tr>
+    <td>${u.id_usuario}</td><td><strong>${u.username}</strong></td>
+    <td>${u.nombre_completo}</td><td>${u.email}</td>
+    <td>${(u.roles||[]).join(', ')||'–'}</td>
+    <td><span class="badge badge-${u.estado}">${u.estado}</span></td>
+    <td>
+      <button class="btn-action" onclick="editUsuario(${u.id_usuario})"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
+      <button class="btn-action del" onclick="deleteItem('/usuarios/${u.id_usuario}', loadUsuarios)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg> Eliminar</button>
+    </td></tr>`).join('');
+}
+
+async function loadRoles() {
+  const data = await api('GET', '/roles/');
+  rolesCache = data || [];
+  const tbody = document.getElementById('tbody-roles');
+  const addBtn = document.querySelector('#page-roles .btn-add');
+  if (addBtn) addBtn.style.display = canWriteSeguridad ? '' : 'none';
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Sin registros</td></tr>'; return; }
+  tbody.innerHTML = data.map(r => `<tr>
+    <td>${r.id_rol}</td><td><strong>${r.nombre_rol}</strong></td><td>${r.descripcion||'–'}</td>
+    <td>${actionBtns(canWriteSeguridad, "editRol("+r.id_rol+",'"+r.nombre_rol+"','"+( r.descripcion||'')+"')", "deleteItem('/roles/"+r.id_rol+"', loadRoles)")}</td>
+  </tr>`).join('');
+}
+
+async function loadAuditoria() {
+  const data = await api('GET', '/auditoria/');
+  const tbody = document.getElementById('tbody-auditoria');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Sin registros</td></tr>'; return; }
+  tbody.innerHTML = data.map(l => `<tr>
+    <td>${new Date(l.fecha).toLocaleString('es')}</td>
+    <td>${l.username||'–'}</td><td><strong>${l.accion}</strong></td>
+    <td>${l.descripcion||'–'}</td><td>${l.tabla_afectada||'–'}</td><td>${l.ip||'–'}</td>
+  </tr>`).join('');
+}
+
+async function loadEmpleados() {
+  const [emps, cargos, deps] = await Promise.all([api('GET','/empleados/'), api('GET','/cargos/'), api('GET','/dependencias/')]);
+  cargosCache = cargos||[]; dependenciasCache = deps||[]; empleadosCache = emps||[];
+  const tbody = document.getElementById('tbody-empleados');
+  if (!emps?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Sin registros</td></tr>'; return; }
+  const addBtnEmp = document.querySelector('#page-empleados .btn-add');
+  if (addBtnEmp) addBtnEmp.style.display = canWriteRRHH ? '' : 'none';
+  tbody.innerHTML = emps.map(e => `<tr>
+    <td>${e.cedula}</td><td><strong>${e.nombre}</strong></td>
+    <td>${e.cargo_nombre||'–'}</td><td>${e.dependencia_nombre||'–'}</td>
+    <td>Gs. ${Number(e.salario_base).toLocaleString('es')}</td>
+    <td><span class="badge badge-${e.estado}">${e.estado}</span></td>
+    <td>${actionBtns(canWriteRRHH, 'editEmpleado('+e.id_empleado+')', "deleteItem('/empleados/"+e.id_empleado+"', loadEmpleados)")}</td>
+  </tr>`).join('');
+}
+
+async function loadCargos() {
+  const data = await api('GET', '/cargos/'); cargosCache = data||[];
+  const tbody = document.getElementById('tbody-cargos');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Sin registros</td></tr>'; return; }
+  const addBtnC = document.querySelector('#page-cargos .btn-add');
+  if (addBtnC) addBtnC.style.display = canWriteRRHH ? '' : 'none';
+  tbody.innerHTML = data.map(c => `<tr>
+    <td>${c.id_cargo}</td><td><strong>${c.descripcion}</strong></td>
+    <td>${actionBtns(canWriteRRHH, "editSimple('cargo',"+c.id_cargo+",'"+c.descripcion+"')", "deleteItem('/cargos/"+c.id_cargo+"', loadCargos)")}</td>
+  </tr>`).join('');
+}
+
+async function loadDependencias() {
+  const data = await api('GET', '/dependencias/'); dependenciasCache = data||[];
+  const tbody = document.getElementById('tbody-dependencias');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Sin registros</td></tr>'; return; }
+  const addBtnD = document.querySelector('#page-dependencias .btn-add');
+  if (addBtnD) addBtnD.style.display = canWriteRRHH ? '' : 'none';
+  tbody.innerHTML = data.map(d => `<tr>
+    <td>${d.id_dependencia}</td><td><strong>${d.descripcion}</strong></td>
+    <td>${actionBtns(canWriteRRHH, "editSimple('dependencia',"+d.id_dependencia+",'"+d.descripcion+"')", "deleteItem('/dependencias/"+d.id_dependencia+"', loadDependencias)")}</td>
+  </tr>`).join('');
+}
+
+async function loadAsistencias() {
+  if (!empleadosCache.length) empleadosCache = await api('GET','/empleados/')||[];
+  const data = await api('GET', '/asistencias/');
+  const tbody = document.getElementById('tbody-asistencias');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Sin registros</td></tr>'; return; }
+  const addBtnA = document.querySelector('#page-asistencias .btn-add');
+  if (addBtnA) addBtnA.style.display = canWriteRRHH ? '' : 'none';
+  const delBtn = canWriteRRHH
+    ? `<button class="btn-action del" onclick="deleteItem('/asistencias/ID_REPL', loadAsistencias)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Eliminar</button>`
+    : '<span style="color:var(--muted);font-size:.78rem">Solo lectura</span>';
+  tbody.innerHTML = data.map(a => {
+    const btn = delBtn.replace('ID_REPL', a.id_asistencia);
+    return `<tr>
+      <td>${a.empleado_nombre||'–'}</td><td>${a.fecha}</td>
+      <td>${a.hora_entrada||'–'}</td><td>${a.hora_salida||'–'}</td>
+      <td>${btn}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadNominas() {
+  const data = await api('GET', '/nominas/');
+  const tbody = document.getElementById('tbody-nominas');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Sin registros</td></tr>'; return; }
+  const addBtnN = document.querySelector('#page-nominas .btn-add');
+  if (addBtnN) addBtnN.style.display = canWriteRRHH ? '' : 'none';
+  const delBtnN = canWriteRRHH
+    ? `<button class="btn-action del" onclick="deleteItem('/nominas/NID_REPL', loadNominas)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Eliminar</button>`
+    : '';
+  tbody.innerHTML = data.map(n => {
+    const btn = delBtnN.replace('NID_REPL', n.id_nomina);
+    return `<tr>
+      <td>${n.id_nomina}</td><td><strong>${n.periodo}</strong></td>
+      <td>${n.fecha_generacion}</td>
+      <td>Gs. ${Number(n.total_nomina).toLocaleString('es')}</td>
+      <td>
+        <button class="btn-action" onclick="verDetalleNomina(${n.id_nomina},'${n.periodo}')"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver detalle</button>
+        ${btn}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function imprimirNomina() {
+  window.print();
+}
+
+async function verDetalleNomina(id, periodo) {
+  currentNominaId = id;
+  if (!empleadosCache.length) empleadosCache = await api('GET','/empleados/')||[];
+  const data = await api('GET', `/nominas/${id}/detalles`);
+  document.getElementById('detalle-nomina-section').style.display = 'block';
+  document.getElementById('btn-agregar-detalle').style.display = canWriteRRHH ? '' : 'none';
+  document.getElementById('detalle-nomina-title').textContent = `Detalle – Período ${periodo}`;
+  // Set print header info
+  document.getElementById('print-title').textContent = `Nómina – Período ${periodo}`;
+  document.getElementById('print-meta').textContent = `Generado el ${new Date().toLocaleDateString('es')} | Sistema RRHH`;
+  const tbody = document.getElementById('tbody-detalle-nomina');
+  if (!data?.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Sin detalles</td></tr>'; return; }
+  tbody.innerHTML = data.map(d => `<tr>
+    <td>${d.empleado_nombre||'–'}</td>
+    <td>Gs. ${Number(d.salario_base).toLocaleString('es')}</td>
+    <td>Gs. ${Number(d.descuentos).toLocaleString('es')}</td>
+    <td><strong>Gs. ${Number(d.salario_neto||0).toLocaleString('es')}</strong></td>
+    <td><button class="btn-action del" onclick="deleteItem('/nominas/detalles/${d.id_detalle_nomina}', ()=>verDetalleNomina(${id},'${periodo}'))"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Eliminar</button></td>
+  </tr>`).join('');
+}
+
+// ── MODALES ───────────────────────────────────────────────────────────────
+function openModal(type, data={}) {
+  window._pendingUsuarioData = null;
+  document.getElementById('modalBox').innerHTML = buildModal(type, data);
+  document.getElementById('modalOverlay').classList.add('open');
+  // Apply values that can't be set via HTML attributes safely
+  if (window._pendingUsuarioData) {
+    const d = window._pendingUsuarioData;
+    const fu = document.getElementById('f-username');
+    const fn = document.getElementById('f-nombre');
+    const fe = document.getElementById('f-email');
+    if (fu) fu.value = d.username;
+    if (fn) fn.value = d.nombre;
+    if (fe) fe.value = d.email;
+  }
+}
+function buildUsuarioModal(isEdit, data, rolesOpts) {
+  const pwField = isEdit ? '' : '<div class="form-field"><label>Contraseña</label><input id="f-password" type="password"></div>';
+  const roAttr  = isEdit ? ' readonly' : '';
+  const saveId  = data.id || 0;
+  const html = '<div class="modal-title">' + (isEdit ? 'Editar' : 'Nuevo') + ' Usuario</div>'
+    + '<div class="form-field"><label>Username</label><input id="f-username"' + roAttr + '></div>'
+    + pwField
+    + '<div class="form-field"><label>Nombre completo</label><input id="f-nombre"></div>'
+    + '<div class="form-field"><label>Email</label><input id="f-email" type="email"></div>'
+    + '<div class="form-field"><label>Estado</label><select id="f-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>'
+    + '<div class="form-field"><label>Rol</label><select id="f-rol">' + rolesOpts + '</select></div>'
+    + '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveUsuario(' + saveId + ')">Guardar</button></div>';
+  // Set values after DOM insertion via setTimeout in openModal
+  window._pendingUsuarioData = { username: data.username||'', nombre: data.nombre||'', email: data.email||'' };
+  return html;
+}
+
+function buildModal(type, data) {
+  const isEdit = !!data.id;
+  const rolesOpts  = rolesCache.map(r=>`<option value="${r.id_rol}">${r.nombre_rol}</option>`).join('');
+  const cargosOpts = cargosCache.map(c=>`<option value="${c.id_cargo}">${c.descripcion}</option>`).join('');
+  const depsOpts   = dependenciasCache.map(d=>`<option value="${d.id_dependencia}">${d.descripcion}</option>`).join('');
+  const empOpts    = empleadosCache.map(e=>`<option value="${e.id_empleado}">${e.nombre}</option>`).join('');
+  const modals = {
+    usuario: buildUsuarioModal(isEdit, data, rolesOpts),
+    rol: `<div class="modal-title">${isEdit?'Editar':'Nuevo'} Rol</div>
+      <div class="form-field"><label>Nombre</label><input id="f-nombre_rol" value="${data.nombre||''}"></div>
+      <div class="form-field"><label>Descripción</label><input id="f-desc" value="${data.desc||''}"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveRol(${data.id||0})">Guardar</button></div>`,
+    cargo: `<div class="modal-title">${isEdit?'Editar':'Nuevo'} Cargo</div>
+      <div class="form-field"><label>Descripción</label><input id="f-desc" value="${data.desc||''}"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveSimple('cargo',${data.id||0})">Guardar</button></div>`,
+    dependencia: `<div class="modal-title">${isEdit?'Editar':'Nueva'} Dependencia</div>
+      <div class="form-field"><label>Descripción</label><input id="f-desc" value="${data.desc||''}"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveSimple('dependencia',${data.id||0})">Guardar</button></div>`,
+    empleado: `<div class="modal-title">${isEdit?'Editar':'Nuevo'} Empleado</div>
+      <div class="form-field"><label>Cédula</label><input id="f-cedula" value="${data.cedula||''}"></div>
+      <div class="form-field"><label>Nombre</label><input id="f-nombre" value="${data.nombre||''}"></div>
+      <div class="form-field"><label>Dirección</label><input id="f-dir" value="${data.dir||''}"></div>
+      <div class="form-field"><label>Teléfono</label><input id="f-tel" value="${data.tel||''}"></div>
+      <div class="form-field"><label>Cargo</label><select id="f-cargo"><option value="">– Seleccionar –</option>${cargosOpts}</select></div>
+      <div class="form-field"><label>Dependencia</label><select id="f-dep"><option value="">– Seleccionar –</option>${depsOpts}</select></div>
+      <div class="form-field"><label>Salario base (Gs.)</label><input id="f-salario" type="number" value="${data.salario||0}"></div>
+      <div class="form-field"><label>Fecha de ingreso</label><input id="f-fecha" type="date" value="${data.fecha||''}"></div>
+      <div class="form-field"><label>Estado</label><select id="f-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveEmpleado(${data.id||0})">Guardar</button></div>`,
+    asistencia: `<div class="modal-title">Registrar Asistencia</div>
+      <div class="form-field"><label>Empleado</label><select id="f-emp"><option value="">– Seleccionar –</option>${empOpts}</select></div>
+      <div class="form-field"><label>Fecha</label><input id="f-fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-field"><label>Hora entrada</label><input id="f-entrada" type="time"></div>
+      <div class="form-field"><label>Hora salida</label><input id="f-salida" type="time"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveAsistencia()">Guardar</button></div>`,
+    nomina: `<div class="modal-title">Nueva Nómina</div>
+      <div class="form-field"><label>Período (ej: 2025-05)</label><input id="f-periodo" placeholder="2025-05"></div>
+      <div class="form-field"><label>Fecha de generación</label><input id="f-fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveNomina()">Guardar</button></div>`,
+    detalle_nomina: `<div class="modal-title">Agregar Empleado a Nómina</div>
+      <div class="form-field"><label>Empleado</label><select id="f-emp"><option value="">– Seleccionar –</option>${empOpts}</select></div>
+      <div class="form-field"><label>Salario base (Gs.)</label><input id="f-salario" type="number" value="0"></div>
+      <div class="form-field"><label>Descuentos (Gs.)</label><input id="f-desc" type="number" value="0"></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveDetalleNomina()">Guardar</button></div>`
+  };
+  return modals[type]||'';
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModalOnBg(e) { if (e.target===document.getElementById('modalOverlay')) closeModal(); }
+
+// ── SAVES ─────────────────────────────────────────────────────────────────
+async function saveUsuario(id) {
+  const body = { nombre_completo:document.getElementById('f-nombre').value, email:document.getElementById('f-email').value, estado:document.getElementById('f-estado').value, roles:[parseInt(document.getElementById('f-rol').value)] };
+  if (!id) { body.username=document.getElementById('f-username').value; body.password=document.getElementById('f-password').value; }
+  const res = await api(id?'PUT':'POST', id?`/usuarios/${id}`:'/usuarios/', body);
+  if (res) { closeModal(); loadUsuarios(); showToast('Usuario guardado', 'success'); }
+}
+async function saveRol(id) {
+  const res = await api(id?'PUT':'POST', id?`/roles/${id}`:'/roles/', { nombre_rol:document.getElementById('f-nombre_rol').value, descripcion:document.getElementById('f-desc').value });
+  if (res) { closeModal(); loadRoles(); showToast('Rol guardado', 'success'); }
+}
+async function saveSimple(type, id) {
+  const path = type==='cargo'?'/cargos/':'/dependencias/';
+  const res = await api(id?'PUT':'POST', id?`${path}${id}`:path, { descripcion:document.getElementById('f-desc').value });
+  if (res) { closeModal(); type==='cargo'?loadCargos():loadDependencias(); showToast('Guardado', 'success'); }
+}
+async function saveEmpleado(id) {
+  const body = { cedula:document.getElementById('f-cedula').value, nombre:document.getElementById('f-nombre').value, direccion:document.getElementById('f-dir').value, telefono:document.getElementById('f-tel').value, id_cargo:parseInt(document.getElementById('f-cargo').value)||null, id_dependencia:parseInt(document.getElementById('f-dep').value)||null, salario_base:parseFloat(document.getElementById('f-salario').value)||0, fecha_ingreso:document.getElementById('f-fecha').value, estado:document.getElementById('f-estado').value };
+  const res = await api(id?'PUT':'POST', id?`/empleados/${id}`:'/empleados/', body);
+  if (res) { closeModal(); loadEmpleados(); showToast('Empleado guardado', 'success'); }
+}
+async function saveAsistencia() {
+  const body = { id_empleado:parseInt(document.getElementById('f-emp').value), fecha:document.getElementById('f-fecha').value, hora_entrada:document.getElementById('f-entrada').value||null, hora_salida:document.getElementById('f-salida').value||null };
+  const res = await api('POST', '/asistencias/', body);
+  if (res) { closeModal(); loadAsistencias(); showToast('Asistencia registrada', 'success'); }
+  else showToast('Error al registrar', 'error');
+}
+async function saveNomina() {
+  const res = await api('POST', '/nominas/', { periodo:document.getElementById('f-periodo').value, fecha_generacion:document.getElementById('f-fecha').value, total_nomina:0 });
+  if (res) { closeModal(); loadNominas(); showToast('Nómina creada', 'success'); }
+}
+async function saveDetalleNomina() {
+  const res = await api('POST', `/nominas/${currentNominaId}/detalles`, { id_nomina:currentNominaId, id_empleado:parseInt(document.getElementById('f-emp').value), salario_base:parseFloat(document.getElementById('f-salario').value)||0, descuentos:parseFloat(document.getElementById('f-desc').value)||0 });
+  if (res) { closeModal(); showToast('Detalle agregado', 'success'); loadNominas(); }
+}
+
+// ── EDITS ─────────────────────────────────────────────────────────────────
+async function editUsuario(id) {
+  if (!rolesCache.length) rolesCache = await api('GET','/roles/')||[];
+  const u = await api('GET', `/usuarios/${id}`);
+  openModal('usuario', { id, username: u.username, nombre: u.nombre_completo, email: u.email });
+
+}
+function editRol(id, nombre, desc) { openModal('rol', { id, nombre, desc }); }
+function editSimple(type, id, desc) { openModal(type, { id, desc }); }
+async function editEmpleado(id) {
+  if (!cargosCache.length) cargosCache = await api('GET','/cargos/')||[];
+  if (!dependenciasCache.length) dependenciasCache = await api('GET','/dependencias/')||[];
+  const e = await api('GET', `/empleados/${id}`);
+  openModal('empleado', { id, cedula:e.cedula, nombre:e.nombre, dir:e.direccion||'', tel:e.telefono||'', salario:e.salario_base, fecha:e.fecha_ingreso });
+}
+
+async function deleteItem(path, reload) {
+  if (!confirm('¿Confirmar eliminación?')) return;
+  const res = await api('DELETE', path);
+  if (res) { reload(); showToast('Eliminado', 'success'); }
+  else showToast('No se pudo eliminar', 'error');
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  const icons = {
+    success: '<polyline points="20 6 9 17 4 12"/>',
+    error: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+  };
+  document.getElementById('toastIcon').innerHTML = icons[type];
+  document.getElementById('toastText').textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+applyRoleRestrictions();
+
+(async () => {
+  rolesCache        = await api('GET','/roles/')        || [];
+  cargosCache       = await api('GET','/cargos/')       || [];
+  dependenciasCache = await api('GET','/dependencias/') || [];
+  empleadosCache    = await api('GET','/empleados/')    || [];
+})();
+</script>
+</body>
+</html>

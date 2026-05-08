@@ -1,0 +1,124 @@
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from database import get_db
+from models import Usuario, Rol, UsuarioRol, AuditoriaLog
+from schemas import UsuarioCreate, UsuarioUpdate, UsuarioOut, LoginRequest, Token
+from auth import hash_password, verify_password, create_token
+from typing import List
+
+router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+
+def _get_roles_names(u: Usuario):
+    return [ur.rol.nombre_rol for ur in u.roles]
+
+
+@router.post("/login", response_model=Token)
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    user = db.query(Usuario).filter(Usuario.username == data.username).first()
+    if not user or not verify_password(data.password, user.password):
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    if user.estado != "activo":
+        raise HTTPException(status_code=403, detail="Usuario inactivo")
+
+    roles = _get_roles_names(user)
+    token = create_token({"sub": str(user.id_usuario), "roles": roles})
+
+    log = AuditoriaLog(id_usuario=user.id_usuario, accion="LOGIN",
+                       descripcion="Inicio de sesión exitoso",
+                       ip=request.client.host)
+    db.add(log)
+    db.commit()
+
+    return Token(access_token=token, token_type="bearer",
+                 nombre_completo=user.nombre_completo, roles=roles)
+
+
+@router.get("/", response_model=List[UsuarioOut])
+def listar(db: Session = Depends(get_db)):
+    usuarios = db.query(Usuario).all()
+    result = []
+    for u in usuarios:
+        out = UsuarioOut(
+            id_usuario=u.id_usuario, username=u.username,
+            nombre_completo=u.nombre_completo, email=u.email,
+            estado=u.estado, fecha_creacion=u.fecha_creacion,
+            roles=_get_roles_names(u)
+        )
+        result.append(out)
+    return result
+
+
+@router.get("/{id_usuario}", response_model=UsuarioOut)
+def obtener(id_usuario: int, db: Session = Depends(get_db)):
+    u = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return UsuarioOut(
+        id_usuario=u.id_usuario, username=u.username,
+        nombre_completo=u.nombre_completo, email=u.email,
+        estado=u.estado, fecha_creacion=u.fecha_creacion,
+        roles=_get_roles_names(u)
+    )
+
+
+@router.post("/", response_model=UsuarioOut, status_code=201)
+def crear(data: UsuarioCreate, db: Session = Depends(get_db)):
+    if db.query(Usuario).filter(Usuario.username == data.username).first():
+        raise HTTPException(status_code=400, detail="Username ya existe")
+    if db.query(Usuario).filter(Usuario.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email ya existe")
+
+    u = Usuario(username=data.username, password=hash_password(data.password),
+                nombre_completo=data.nombre_completo, email=data.email,
+                estado=data.estado)
+    db.add(u)
+    db.flush()
+
+    for id_rol in (data.roles or []):
+        rol = db.query(Rol).filter(Rol.id_rol == id_rol).first()
+        if rol:
+            db.add(UsuarioRol(id_usuario=u.id_usuario, id_rol=id_rol))
+
+    db.commit()
+    db.refresh(u)
+    return UsuarioOut(
+        id_usuario=u.id_usuario, username=u.username,
+        nombre_completo=u.nombre_completo, email=u.email,
+        estado=u.estado, fecha_creacion=u.fecha_creacion,
+        roles=_get_roles_names(u)
+    )
+
+
+@router.put("/{id_usuario}", response_model=UsuarioOut)
+def actualizar(id_usuario: int, data: UsuarioUpdate, db: Session = Depends(get_db)):
+    u = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if data.nombre_completo is not None: u.nombre_completo = data.nombre_completo
+    if data.email is not None:           u.email = data.email
+    if data.estado is not None:          u.estado = data.estado
+
+    if data.roles is not None:
+        db.query(UsuarioRol).filter(UsuarioRol.id_usuario == id_usuario).delete()
+        for id_rol in data.roles:
+            db.add(UsuarioRol(id_usuario=id_usuario, id_rol=id_rol))
+
+    db.commit()
+    db.refresh(u)
+    return UsuarioOut(
+        id_usuario=u.id_usuario, username=u.username,
+        nombre_completo=u.nombre_completo, email=u.email,
+        estado=u.estado, fecha_creacion=u.fecha_creacion,
+        roles=_get_roles_names(u)
+    )
+
+
+@router.delete("/{id_usuario}", status_code=204)
+def eliminar(id_usuario: int, db: Session = Depends(get_db)):
+    u = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    db.delete(u)
+    db.commit()
